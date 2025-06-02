@@ -31,8 +31,8 @@ WORKDIR /app
 # The wildcard (*) handles potential variations in the artifact name
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose the port the application runs on (default 8761 for Eureka Discovery Server)
-EXPOSE 8761
+# Expose the port the application runs on (assuming 8083 for gateway)
+EXPOSE 8083
 
 # Define the command to run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
