@@ -32,7 +32,7 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 # Expose the port the application runs on (default 8888 for Spring Cloud Config Server)
-EXPOSE 8888
+EXPOSE 8881
 
 # Define the command to run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

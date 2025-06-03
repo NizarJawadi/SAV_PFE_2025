@@ -42,7 +42,7 @@ services:
       dockerfile: Dockerfile
     container_name: config-server
     ports:
-      - "8888:8888"
+      - "8881:8881"
     networks:
       - sav-network
     healthcheck:
@@ -63,7 +63,7 @@ services:
       config-server:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       # EUREKA_INSTANCE_HOSTNAME: discovery-service # Optional: can help with registration
     networks:
       - sav-network
@@ -88,7 +88,7 @@ services:
       discovery-service:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
     networks:
       - sav-network
@@ -118,7 +118,7 @@ services:
       redis-cache:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -142,7 +142,7 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -163,7 +163,7 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -184,7 +184,7 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -203,7 +203,7 @@ services:
       discovery-service:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       # Add specific mail configuration via config-server or environment variables
     networks:
@@ -222,7 +222,7 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -243,7 +243,7 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -264,7 +264,7 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
@@ -283,7 +283,7 @@ services:
       discovery-service:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       # Add any specific environment variables needed for the chatbot (e.g., API keys)
     networks:
@@ -302,7 +302,7 @@ services:
       mysql-db:
         condition: service_healthy
     environment:
-      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8881
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
