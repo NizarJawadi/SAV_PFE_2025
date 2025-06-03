@@ -1,0 +1,335 @@
+#version: '3.8'
+
+services:
+  # --- Databases ---
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-sav-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword # Change this in production
+      MYSQL_DATABASE: sav_db # Example database name, adjust if needed
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sav-network
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-uroot", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-cache:
+    image: redis:alpine
+    container_name: redis-sav-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sav-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Core Services ---
+  config-server:
+    build:
+      context: ./SAV/Services/config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - sav-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s # Give time for the service to start
+
+  discovery-service:
+    build:
+      context: ./SAV/Services/discovery
+      dockerfile: Dockerfile
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      # EUREKA_INSTANCE_HOSTNAME: discovery-service # Optional: can help with registration
+    networks:
+      - sav-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # --- Gateway ---
+  gateway:
+    build:
+      context: ./SAV/Services/gateway
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    networks:
+      - sav-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s # Gateway might take longer
+
+  # --- Backend Microservices (Example for one, repeat and adapt for others) ---
+  # Note: Adjust ports, dependencies, and environment variables for each service
+  authentification:
+    build:
+      context: ./SAV/Services/authentification
+      dockerfile: Dockerfile
+    container_name: authentification-service
+    # ports: # Only expose if needed directly, otherwise use gateway
+    #   - "PORT:PORT"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword # Use secrets in production
+      SPRING_REDIS_HOST: redis-sav-cache
+      SPRING_REDIS_PORT: 6379
+    networks:
+      - sav-network
+    # Add healthcheck similar to gateway if actuator is enabled
+
+  categories-services:
+    build:
+      context: ./SAV/Services/CategoriesServices
+      dockerfile: Dockerfile
+    container_name: categories-services
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+    networks:
+      - sav-network
+
+  facture-service:
+    build:
+      context: ./SAV/Services/Facture-Service
+      dockerfile: Dockerfile
+    container_name: facture-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+    networks:
+      - sav-network
+
+  historique-achat:
+    build:
+      context: ./SAV/Services/HistoriqueAchat
+      dockerfile: Dockerfile
+    container_name: historique-achat-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+    networks:
+      - sav-network
+
+  mail-sender:
+    build:
+      context: ./SAV/Services/MailSender
+      dockerfile: Dockerfile
+    container_name: mail-sender-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      # Add specific mail configuration via config-server or environment variables
+    networks:
+      - sav-network
+
+  piece-de-rechange:
+    build:
+      context: ./SAV/Services/PieceDeRechange
+      dockerfile: Dockerfile
+    container_name: piece-de-rechange-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+    networks:
+      - sav-network
+
+  produit-services:
+    build:
+      context: ./SAV/Services/ProduitServices
+      dockerfile: Dockerfile
+    container_name: produit-services
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+    networks:
+      - sav-network
+
+  reclamation:
+    build:
+      context: ./SAV/Services/Reclamtion # Corrected directory name?
+      dockerfile: Dockerfile
+    container_name: reclamation-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+    networks:
+      - sav-network
+
+  spring-chatbot:
+    build:
+      context: ./SAV/Services/Spring-chatbot
+      dockerfile: Dockerfile
+    container_name: spring-chatbot-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      # Add any specific environment variables needed for the chatbot (e.g., API keys)
+    networks:
+      - sav-network
+
+  interventions:
+    build:
+      context: ./SAV/Services/interventions
+      dockerfile: Dockerfile
+    container_name: interventions-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8888
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-sav-db:3306/sav_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+    networks:
+      - sav-network
+
+  # --- Frontend --- 
+  frontend:
+    build:
+      context: ./SAV_Front
+      dockerfile: Dockerfile
+    container_name: frontend-angular
+    ports:
+      - "4200:80" # Map host port 4200 to container port 80 (Nginx default)
+    depends_on:
+      - gateway # Frontend likely communicates via gateway
+    networks:
+      - sav-network
+
+# --- Volumes ---
+volumes:
+  mysql_data:
+  redis_data:
+
+# --- Networks ---
+networks:
+  sav-network:
+    driver: bridge
+

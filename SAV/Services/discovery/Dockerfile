@@ -1,5 +1,5 @@
 # Use an official OpenJDK runtime as a parent image
-FROM openjdk:17-jdk-slim as build
+FROM openjdk:17-jdk-slim AS build
 
 # Set the working directory
 WORKDIR /app
@@ -22,7 +22,7 @@ COPY src src
 RUN ./mvnw package -DskipTests -B
 
 # Use a smaller base image for the final stage
-FROM openjdk:17-jre-slim
+FROM openjdk:17-jdk-slim
 
 # Set the working directory
 WORKDIR /app
